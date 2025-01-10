@@ -37,10 +37,11 @@ public class SoloCoopMod : BloonsTD6Mod
             ApplyTierRestrictions(__instance, towers);
         }
 
+        // Set hero counts for coop members given a comma separated list of Heroes Settings.Heroess
         private static void ApplyCustomHeroes(TowerInventory inventory, string heroes)
         {
             var heroCounts = new Dictionary<string, int>();
-            int totalHeroesAllowed = 1 + Settings.NCoopMembers;
+            int totalHeroesAllowed = Settings.NCoopMembers;
             int allocatedHeroes = 0;
 
             foreach (var hero in heroes.Split(','))
@@ -69,10 +70,11 @@ public class SoloCoopMod : BloonsTD6Mod
 
             foreach (var change in changes)
             {
-                inventory.GetTowerInventoryMaxes()[change.Key] = change.Value;
+                inventory.GetTowerInventoryMaxes()[change.Key] += change.Value;
             }
         }
 
+        // Just use multiple of the players selected hero is Settings.Heroes is invalid
         private static void ApplyDefaultHeroes(TowerInventory inventory)
         {
             foreach (var entry in inventory.GetTowerInventoryMaxes())
@@ -85,6 +87,7 @@ public class SoloCoopMod : BloonsTD6Mod
             }
         }
 
+        // Allow multiple T5s with special handling for Master Double Cross MK setting
         private static void ApplyTierRestrictions(TowerInventory inventory, IEnumerable<TowerDetailsModel> towers)
         {
             towers.ForEach(tower =>

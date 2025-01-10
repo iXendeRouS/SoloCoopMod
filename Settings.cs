@@ -12,12 +12,12 @@ public class Settings : ModSettings
 
     public static readonly ModSettingInt NCoopMembers = new(3)
     {
-        displayName = "Additional Coop Members"
+        displayName = "Number of Additional Coop Members"
     };
 
     public static readonly ModSettingString Heroes = new("")
     {
-        displayName = "Heroes (separate with commas)"
+        displayName = "Coop Member Heroes (separate with commas)"
     };
 
     public static readonly ModSettingBool MasterDoubleCross = new(true)
