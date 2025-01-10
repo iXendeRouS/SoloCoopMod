@@ -20,6 +20,11 @@ public class Settings : ModSettings
         displayName = "Coop Member Heroes (separate with commas)"
     };
 
+    public static readonly ModSettingBool UseCoopStartingCash = new(false)
+    {
+        displayName = "Use Coop Starting Cash"
+    };
+
     public static readonly ModSettingBool MasterDoubleCross = new(true)
     {
         displayName = "Master Double Cross MK"
