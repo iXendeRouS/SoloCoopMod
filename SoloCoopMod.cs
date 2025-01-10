@@ -3,11 +3,8 @@ using BTD_Mod_Helper;
 using BTD_Mod_Helper.Extensions;
 using SoloCoopMod;
 using Il2CppAssets.Scripts.Models.TowerSets;
-using Il2CppAssets.Scripts.Simulation.Input;
-using Il2CppSystem.Collections.Generic;
-using HarmonyLib;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
-using System.Linq;
+using Il2CppAssets.Scripts.Unity;
 
 [assembly: MelonInfo(typeof(SoloCoopMod.SoloCoopMod), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -16,123 +13,103 @@ namespace SoloCoopMod;
 
 public class SoloCoopMod : BloonsTD6Mod
 {
-    // Sets starting cash to the total of what it would be in Coop
-    public override void OnInGameLoaded(InGame inGame)
+    public override void OnRestart()
     {
-        base.OnInGameLoaded(inGame);
+        MelonLogger.Msg("OnRestart");
 
-        if (!Settings.EnableMod || !Settings.UseCoopStartingCash || Settings.NCoopMembers < 1 || InGame.instance.GetCash() >= 9999999) return;
+        base.OnRestart();
 
-        int numPlayers = Settings.NCoopMembers + 1;
-
-        int[] coopCash = { 0, 650, 1100, 1500, 1800, 2000, 2100 };
-
-        if (numPlayers > 6) numPlayers = 6;
-
-        double defaultCash = 650;
-        double currentCash = InGame.instance.GetCash();
-        InGame.instance.SetCash((currentCash - defaultCash) + coopCash[numPlayers]);
+        if (Settings.EnableMod && Settings.NCoopMembers >= 1)
+        {
+            ApplyCoopHeroes();
+            ApplyTierRestrictions();
+            SetCoopStartingCash();
+        }
     }
 
-    [HarmonyPatch(typeof(TowerInventory), nameof(TowerInventory.SetTowerTierRestrictions))]
-    internal static class TowerInventory_SetTowerTierRestrictions
+    public override void OnMatchStart()
     {
-        [HarmonyPostfix]
-        private static void Postfix(TowerInventory __instance, IEnumerable<TowerDetailsModel> towers)
+        MelonLogger.Msg("OnMatchStart");
+
+        base.OnMatchStart();
+
+        if (Settings.EnableMod && Settings.NCoopMembers >= 1)
         {
-            if (!Settings.EnableMod || Settings.NCoopMembers < 1)
-                return;
+            ApplyCoopHeroes();
+            ApplyTierRestrictions();
+            SetCoopStartingCash();
+        }
+    }
 
-            var heroes = Settings.Heroes.GetLastSavedValue()?.ToString();
+    // Set hero counts for coop members given a comma-separated list of Heroes Settings.Heroes
+    private static void ApplyCoopHeroes()
+    {
+        var inventory = InGame.instance.GetTowerInventory();
 
-            if (!string.IsNullOrEmpty(heroes))
-            {
-                ApplyCustomHeroes(__instance, heroes);
-            }
-            else
-            {
-                ApplyDefaultHeroes(__instance);
-            }
-
-            ApplyTierRestrictions(__instance, towers);
+        foreach (var item in Game.instance.GetHeroDetailModels())
+        {
+            string s = item.towerId;
+            inventory.towerMaxes[s] = 0;
         }
 
-        // Set hero counts for coop members given a comma-separated list of Heroes Settings.Heroess
-        private static void ApplyCustomHeroes(TowerInventory inventory, string heroes)
+        var heroes = Settings.Heroes.GetValue().ToString();
+        int nHeroes = 1;
+        int nHeroesMax = 1 + Settings.NCoopMembers;
+
+        if (string.IsNullOrEmpty(heroes))
         {
-            var heroCounts = new Dictionary<string, int>();
-            int totalHeroesAllowed = Settings.NCoopMembers;
-            int allocatedHeroes = 0;
-
-            // Retrieve valid hero names from the inventory for validation
-            var validHeroes = inventory.GetTowerInventoryMaxes().Keys().ToHashSet();
-            if (validHeroes == null) return;
-
-            foreach (var hero in heroes.Split(','))
-            {
-                if (allocatedHeroes >= totalHeroesAllowed)
-                    break;
-
-                var trimmedHero = hero.Trim();
-
-                // Skip invalid hero names
-                if (!validHeroes.Contains(trimmedHero))
-                    continue;
-
-                if (!heroCounts.ContainsKey(trimmedHero))
-                {
-                    heroCounts[trimmedHero] = 0;
-                }
-
-                heroCounts[trimmedHero]++;
-                allocatedHeroes++;
-            }
-
-            // Prepare changes to be applied to the inventory
-            var changes = new Dictionary<string, int>();
-            foreach (var entry in inventory.GetTowerInventoryMaxes())
-            {
-                if (heroCounts.TryGetValue(entry.Key, out var count))
-                {
-                    changes[entry.Key] = count;
-                }
-            }
-
-            // Apply changes to the inventory
-            foreach (var change in changes)
-            {
-                inventory.GetTowerInventoryMaxes()[change.Key] += change.Value;
-            }
+            inventory.towerMaxes[InGame.instance.SelectedHero] = nHeroesMax;
         }
-
-
-        // Just use multiple of the players selected hero is Settings.Heroes is invalid
-        private static void ApplyDefaultHeroes(TowerInventory inventory)
+        else
         {
-            foreach (var entry in inventory.GetTowerInventoryMaxes())
+            inventory.towerMaxes[InGame.instance.SelectedHero] = 1;
+
+            foreach (var item in heroes.Split(','))
             {
-                if (entry.Value == 1)
+                if (inventory.towerMaxes.ContainsKey(item))
                 {
-                    inventory.GetTowerInventoryMaxes()[entry.Key] += Settings.NCoopMembers;
+                    inventory.towerMaxes[item] += 1;
+                }
+
+                if (nHeroes >= nHeroesMax)
+                {
                     break;
                 }
+                nHeroes++;
             }
-        }
 
-        // Allow multiple T5s with special handling for Master Double Cross MK setting
-        private static void ApplyTierRestrictions(TowerInventory inventory, IEnumerable<TowerDetailsModel> towers)
+            inventory.towerMaxes[InGame.instance.SelectedHero] += nHeroesMax - nHeroes;
+        }
+    }
+
+    // Allow multiple T5s with special handling for Master Double Cross MK setting
+    private static void ApplyTierRestrictions()
+    {
+        var inventory = InGame.instance.GetTowerInventory();
+        var towers = GameModelExt.GetAllTowerDetails(Game.instance.model);
+
+        foreach (var tower in towers)
         {
-            towers.ForEach(tower =>
-            {
-                if (tower.Is<ShopTowerDetailsModel>())
-                    for (var path = 0; path < 3; path++)
-                        inventory.AddTierRestriction(tower.towerId, path, 5, Settings.NCoopMembers);
-            });
-
-            if (Settings.MasterDoubleCross)
-            {
-                inventory.AddTierRestriction("DartMonkey", 2, 5, Settings.NCoopMembers);
-            }
+            if (tower.Is<ShopTowerDetailsModel>())
+                for (var path = 0; path < 3; path++)
+                    inventory.AddTierRestriction(tower.towerId, path, 5, Settings.NCoopMembers);
         }
+
+        if (Settings.MasterDoubleCross)
+        {
+            inventory.AddTierRestriction("DartMonkey", 2, 5, Settings.NCoopMembers);
+        }
+    }
+
+    // Sets starting cash to the total of what it would be in Coop
+    private static void SetCoopStartingCash()
+    {
+        if (!Settings.UseCoopStartingCash || InGame.instance.GetCash() >= 9999999) return;
+
+        int n = Settings.NCoopMembers;
+        n = n > 5 ? 5 : n;
+        int[] coopCash = { 650, 1100, 1500, 1800, 2000, 2100 };
+
+        InGame.instance.SetCash(InGame.instance.GetCash() - 650 + coopCash[n]);
     }
 }
