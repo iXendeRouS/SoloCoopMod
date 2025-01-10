@@ -1,6 +1,12 @@
 # SoloCoopMod
 
-Play with more T5s and heroes like in Coop mode!
+Play with more T5s, heroes, and starting cash like in Coop mode! Great for challenges and testing!
+
+Features:
+ - Choose how many coop members you want
+ - Choose their heroes
+ - Choose if you want coop starting cash
+ - Choose if coop members have the Double Master Cross Monkey Knowledge
 
 ---
 
