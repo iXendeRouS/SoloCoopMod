@@ -22,7 +22,3 @@ Features:
 
 ![BTD6 Mod Helper Banner](https://raw.githubusercontent.com/gurrenm3/BTD-Mod-Helper/master/banner.png)
 
----
-
-## Credits
-- **Doombubbles** for the Unlimited 5th Tiers mod as the starting point for SoloCoopMod.

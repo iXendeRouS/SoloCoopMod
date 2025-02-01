@@ -2,9 +2,17 @@ using MelonLoader;
 using BTD_Mod_Helper;
 using BTD_Mod_Helper.Extensions;
 using SoloCoopMod;
-using Il2CppAssets.Scripts.Models.TowerSets;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Unity;
+using Il2CppAssets.Scripts.Models.SimulationBehaviors;
+using System.Collections.Generic;
+using Il2CppAssets.Scripts.Models;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame.RightMenu;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame.StoreMenu;
+using HarmonyLib;
+using Il2CppAssets.Scripts.Unity.Bridge;
+using Il2CppAssets.Scripts.Models.Towers.Weapons.Behaviors;
+using Il2CppAssets.Scripts.Models.Towers;
 
 [assembly: MelonInfo(typeof(SoloCoopMod.SoloCoopMod), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -13,103 +21,121 @@ namespace SoloCoopMod;
 
 public class SoloCoopMod : BloonsTD6Mod
 {
-    public override void OnRestart()
+    public override void OnNewGameModel(GameModel result)
     {
-        MelonLogger.Msg("OnRestart");
+        MelonLogger.Msg("OnNewGameModel");
+        base.OnNewGameModel(result);
 
-        base.OnRestart();
-
-        if (Settings.EnableMod && Settings.NCoopMembers >= 1)
+        if (Settings.EnableMod && Settings.NCoopMembers > 0)
         {
-            ApplyCoopHeroes();
-            ApplyTierRestrictions();
-            SetCoopStartingCash();
+            ApplyTierRestrictions(result);
         }
     }
 
-    public override void OnMatchStart()
+    [HarmonyPatch(typeof(UnityToSimulation), nameof(UnityToSimulation.MatchReady))]
+    internal static class UnityToSimulation_MatchReady
     {
-        MelonLogger.Msg("OnMatchStart");
-
-        base.OnMatchStart();
-
-        if (Settings.EnableMod && Settings.NCoopMembers >= 1)
+        [HarmonyPostfix]
+        internal static void Postfix()
         {
-            ApplyCoopHeroes();
-            ApplyTierRestrictions();
-            SetCoopStartingCash();
-        }
-    }
-
-    // Set hero counts for coop members given a comma-separated list of Heroes Settings.Heroes
-    private static void ApplyCoopHeroes()
-    {
-        var inventory = InGame.instance.GetTowerInventory();
-
-        foreach (var item in Game.instance.GetHeroDetailModels())
-        {
-            string s = item.towerId;
-            inventory.towerMaxes[s] = 0;
-        }
-
-        var heroes = Settings.Heroes.GetValue().ToString();
-        int nHeroes = 1;
-        int nHeroesMax = 1 + Settings.NCoopMembers;
-
-        if (string.IsNullOrEmpty(heroes))
-        {
-            inventory.towerMaxes[InGame.instance.SelectedHero] = nHeroesMax;
-        }
-        else
-        {
-            inventory.towerMaxes[InGame.instance.SelectedHero] = 1;
-
-            foreach (var item in heroes.Split(','))
+            MelonLogger.Msg("MatchReady - Reapplying Coop Rules");
+            if (Settings.EnableMod && Settings.NCoopMembers > 0)
             {
-                if (inventory.towerMaxes.ContainsKey(item))
-                {
-                    inventory.towerMaxes[item] += 1;
-                }
-
-                if (nHeroes >= nHeroesMax)
-                {
-                    break;
-                }
-                nHeroes++;
+                ApplyCoopHeroes();
+                ApplyCoopStartingCash();
             }
-
-            inventory.towerMaxes[InGame.instance.SelectedHero] += nHeroesMax - nHeroes;
         }
     }
 
-    // Allow multiple T5s with special handling for Master Double Cross MK setting
-    private static void ApplyTierRestrictions()
+    // Allow multiple T5s with special handling for Master Double Master Cross MK setting
+    private static void ApplyTierRestrictions(GameModel model)
     {
-        var inventory = InGame.instance.GetTowerInventory();
-        var towers = GameModelExt.GetAllTowerDetails(Game.instance.model);
+        MelonLogger.Msg("ApplyTierRestrictions");
 
-        foreach (var tower in towers)
+        var restrictionList = new List<TowerTierRestrictionModel>(model.towerTierRestrictions);
+
+        foreach (var item in GameModelExt.GetAllShopTowerDetails(model))
         {
-            if (tower.Is<ShopTowerDetailsModel>())
-                for (var path = 0; path < 3; path++)
-                    inventory.AddTierRestriction(tower.towerId, path, 5, Settings.NCoopMembers);
+            for (var i = 0; i < 3; i++)
+            {
+                restrictionList.Add(new TowerTierRestrictionModel(item.towerId + "Restriction", item.towerId, i, 5, Settings.NCoopMembers));
+            }
         }
 
         if (Settings.MasterDoubleCross)
         {
-            inventory.AddTierRestriction("DartMonkey", 2, 5, Settings.NCoopMembers);
+            restrictionList.Add(new TowerTierRestrictionModel("DartMonkey" + "Restriction", "DartMonkey", 2, 5, Settings.NCoopMembers));
+        }
+
+        model.towerTierRestrictions = restrictionList.ToArray();
+
+        foreach (TowerModel towerModel in model.towers)
+        {
+            if (towerModel.tier >= 5)
+            {
+                towerModel.GetDescendants<LimitProjectileModel>().ForEach(lpmodel => lpmodel.globalForPlayer = false);
+            }
         }
     }
 
-    // Sets starting cash to the total of what it would be in Coop
-    private static void SetCoopStartingCash()
+    private static void ApplyCoopHeroes()
     {
-        if (!Settings.UseCoopStartingCash || InGame.instance.GetCash() >= 9999999) return;
+        MelonLogger.Msg("ApplyCoopHeroes");
 
-        int n = Settings.NCoopMembers;
-        n = n > 5 ? 5 : n;
-        int[] coopCash = { 650, 1100, 1500, 1800, 2000, 2100 };
+        var inventory = InGame.instance.GetTowerInventory();
+        
+        foreach (var hero in Game.instance.GetHeroDetailModels())
+        {
+            inventory.towerMaxes[hero.towerId] = 0;
+        }
 
-        InGame.instance.SetCash(InGame.instance.GetCash() - 650 + coopCash[n]);
+        // Parse the heroes defined in settings or fallback to the default selected hero
+        var definedHeroes = Settings.Heroes.GetValue()?.ToString().Split(',') ?? new string[0];
+        var nCoopMembers = Settings.NCoopMembers;
+        var totalHeroesAllowed = nCoopMembers + 1;
+        var heroQueue = new Queue<string>(definedHeroes);
+        var selectedHero = InGame.instance.SelectedHero;
+
+        while (heroQueue.Count > 0 && totalHeroesAllowed > 0)
+        {
+            var heroId = heroQueue.Dequeue();
+            if (Game.instance.GetHeroDetailModels().Any(h => h.towerId == heroId))
+            {
+                inventory.towerMaxes[heroId]++;
+                totalHeroesAllowed--;
+            }
+        }
+
+        if (totalHeroesAllowed > 0)
+        {
+            inventory.towerMaxes[selectedHero] += totalHeroesAllowed;
+        }
+
+        RefreshShop();
+    }
+
+    private static void RefreshShop()
+    {
+        MelonLogger.Msg("Refreshing shop for updated hero inventory");
+
+        ShopMenu.instance.RebuildTowerSet();
+        foreach (var button in ShopMenu.instance.ActiveTowerButtons)
+        {
+            button.Cast<TowerPurchaseButton>().Update();
+        }
+    }
+
+    private static void ApplyCoopStartingCash()
+    {
+        MelonLogger.Msg("ApplyCoopStartingCash");
+
+        if (!Settings.UseCoopStartingCash || InGameData.CurrentGame.IsSandbox) return;
+        if (InGame.instance.GetCash() != 850 && InGame.instance.GetCash() != 650) return;
+
+        int n = Settings.NCoopMembers + 1;
+
+        double extraCash = ((n - 1) * (650 - 50 * n) - 50 * n) * (InGameData.CurrentGame.selectedMode == "HalfCash" ? 0.5 : 1);
+
+        InGame.instance.AddCash(extraCash);
     }
 }
