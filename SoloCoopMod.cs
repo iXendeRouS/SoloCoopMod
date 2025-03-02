@@ -15,6 +15,7 @@ using Il2CppAssets.Scripts.Models.Towers.Weapons.Behaviors;
 using Il2CppAssets.Scripts.Models.Towers;
 using Newtonsoft.Json.Linq;
 using BTD_Mod_Helper.Api.ModOptions;
+using Il2CppSystem.Runtime.InteropServices;
 
 [assembly: MelonInfo(typeof(SoloCoopMod.SoloCoopMod), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -124,8 +125,7 @@ public class SoloCoopMod : BloonsTD6Mod
 
         foreach (var heroId in _selectedHeroIds)
         {
-            if (towerMaxes.ContainsKey(heroId))
-            {
+            if (Game.instance.GetHeroDetailModels().Any(h => h.towerId == heroId)) {
                 towerMaxes[heroId]++;
             }
         }
