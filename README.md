@@ -3,8 +3,8 @@
 Play with more T5s, heroes, and starting cash like in Coop mode! Great for challenges and testing!
 
 Features:
- - Choose how many coop members you want
- - Choose their heroes
+ - Choose up to 4 heroes to play with
+ - The mod will let you use as many of the same T5 as you have heroes
  - Choose if you want coop starting cash
  - Choose if coop members have the Double Master Cross Monkey Knowledge
 
