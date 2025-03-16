@@ -5,7 +5,15 @@ namespace SoloCoopMod;
 
 public class Settings : ModSettings
 {
-    public static readonly ModSettingCategory heroes = new("Heroes");
+    public static readonly ModSettingCategory heroes = new("Heroes")
+    {
+        order = -1
+    };
+
+    public static readonly ModSettingEnum<Heroes> Hero1 = new(Heroes.None) { category = heroes };
+    public static readonly ModSettingEnum<Heroes> Hero2 = new(Heroes.None) { category = heroes };
+    public static readonly ModSettingEnum<Heroes> Hero3 = new(Heroes.None) { category = heroes };
+    public static readonly ModSettingEnum<Heroes> Hero4 = new(Heroes.None) { category = heroes };
 
     public static readonly ModSettingBool EnableMod = new(true)
     {
@@ -21,9 +29,4 @@ public class Settings : ModSettings
     {
         displayName = "Master Double Cross MK"
     };
-
-    public static readonly ModSettingEnum<Heroes> Hero1 = new(Heroes.None) { category = heroes };
-    public static readonly ModSettingEnum<Heroes> Hero2 = new(Heroes.None) { category = heroes };
-    public static readonly ModSettingEnum<Heroes> Hero3 = new(Heroes.None) { category = heroes };
-    public static readonly ModSettingEnum<Heroes> Hero4 = new(Heroes.None) { category = heroes };
 }
