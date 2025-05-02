@@ -3,7 +3,7 @@ namespace SoloCoopMod;
 public static class ModHelperData
 {
     public const string WorksOnVersion = "44.0";
-    public const string Version = "1.0.2";
+    public const string Version = "1.0.3";
     public const string Name = "Solo Coop";
 
     public const string Description =
@@ -12,7 +12,8 @@ public static class ModHelperData
         " - Choose up to 4 heroes to play with" +
         " - The mod will let you use as many of the same T5 as you have heroes" +
         " - Choose if you want coop starting cash\n" +
-        " - Choose if coop members have the Double Master Cross Monkey Knowledge";
+        " - Choose if coop members have the Double Master Cross Monkey Knowledge\n\n" +
+        "Unfortunately Geraldo's shop is tied to the player, not the tower, so theres no easy way to make multiple geraldos work correctly.";
 
     public const string RepoOwner = "iXendeRouS";
     public const string RepoName = "SoloCoopMod";

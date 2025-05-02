@@ -8,6 +8,8 @@ Features:
  - Choose if you want coop starting cash
  - Choose if coop members have the Double Master Cross Monkey Knowledge
 
+Unfortunately Geraldo's shop is tied to the player, not the tower, so theres no easy way to make multiple geraldos work correctly.
+
 ---
 
 ## Installation
