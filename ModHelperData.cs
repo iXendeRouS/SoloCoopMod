@@ -2,8 +2,8 @@ namespace SoloCoopMod;
 
 public static class ModHelperData
 {
-    public const string WorksOnVersion = "44.0";
-    public const string Version = "1.0.3";
+    public const string WorksOnVersion = "53.0";
+    public const string Version = "1.1.0";
     public const string Name = "Solo Coop";
 
     public const string Description =
@@ -15,6 +15,6 @@ public static class ModHelperData
         " - Choose if coop members have the Double Master Cross Monkey Knowledge\n\n" +
         "Unfortunately Geraldo's shop is tied to the player, not the tower, so theres no easy way to make multiple geraldos work correctly.";
 
-    public const string RepoOwner = "iXendeRouS";
+    public const string RepoOwner = "ixenderous";
     public const string RepoName = "SoloCoopMod";
 }

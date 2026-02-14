@@ -18,6 +18,7 @@
         Quincy,
         Rosalia,
         Sauda,
+        Silas,
         StrikerJones
     }
 }
