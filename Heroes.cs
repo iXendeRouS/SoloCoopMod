@@ -8,6 +8,7 @@
         Benjamin,
         CaptainChurchill,
         Corvus,
+        DanDMonke,
         Etienne,
         Ezili,
         Geraldo,

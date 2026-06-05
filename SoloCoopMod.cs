@@ -15,6 +15,7 @@ using Il2CppAssets.Scripts.Models.Towers;
 using Newtonsoft.Json.Linq;
 using SoloCoopMod;
 using System.Collections.Generic;
+using System.Linq;
 
 [assembly: MelonInfo(typeof(SoloCoopMod.SoloCoopMod), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
